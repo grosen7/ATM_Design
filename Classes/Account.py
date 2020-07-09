@@ -1,13 +1,13 @@
 from __future__ import annotations
-from SQLHelper import SQLHelper
+from Classes.SQLHelper import SQLHelper
 import typing
 
 class Account:
-    def __init__(self) -> Account:
+    def __init__(self, db: str = "Data/atmdb.db") -> Account:
         self.accountId = None
         self.balance = None
         self.isAuthorized = False
-        self.sql = SQLHelper()
+        self.sql = SQLHelper(db)
 
     # updates account details
     def addAccountDetails(self, accountId: int, balance: int, isAuthorized: bool = True) -> None:

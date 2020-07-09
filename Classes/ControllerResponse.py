@@ -8,8 +8,11 @@ class ControllerResponse:
         self.end = False
 
     # update controller response message and error flag
-    def updateResponse(self, message: str, error: bool = False) -> None:
+    def addResponseMsg(self, message: str) -> None:
         self.message = message
+
+    # updates error flag
+    def updateErrorFlag(self, error: bool) -> None:
         self.error = error
 
     # sets controller end flag

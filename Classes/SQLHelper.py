@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 
 class SQLHelper:
-    def __init__(self, dbFile: str = "Data/atmdb.db") -> None:
+    def __init__(self, dbFile: str) -> None:
         self.cursor = self.connect(dbFile)
     
     # connect to provided data base, return db cursor
@@ -50,14 +50,29 @@ class SQLHelper:
         self.cursor.execute("SELECT balance FROM atm_balance WHERE Id = {};".format(id))
         data = self.cursor.fetchone()
 
+        # validate that atm data exists, raise exception if it doesn't
         if len(data) > 0:
             balance = data[0]
         else:
-            balance = -1
+            raise Exception("No data exists for atm with id {}.".format(id))
 
         return balance
 
-if __name__ == "__main__":
-    obj = SQLHelper()
-    test = obj.getATMBalanceCmd()
+    # inserts line to errors table
+    def logErrorCmd(self, accountId: int, error: str) -> None:
+        try:
+            timestamp = datetime.now()
+
+            # if there is no account id then don't insert
+            # otherwise insert
+            if not accountId:
+                self.cursor.execute("""INSERT INTO errors(timestamp, error) 
+                                        VALUES('{}', '{}');""".format(timestamp, error))
+            else:
+                self.cursor.execute("""INSERT INTO errors(account_id, timestamp, error) 
+                                        VALUES({}, '{}', '{}');""".format(accountId, timestamp, error))
+        # as this is being called from exception block in the controller
+        # we need to just aborb the error, most likely a bad sql connection
+        except Exception:
+            pass
     

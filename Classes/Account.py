@@ -23,5 +23,3 @@ class Account:
         newBalance = self.balance + amount
         self.sql.updateBalanceCmd(self.accountId, amount, newBalance)
         self.balance = newBalance
-        # update account history
-        self.sql.updateHistoryCmd(self.accountId, round(amount,2), round(newBalance,2))

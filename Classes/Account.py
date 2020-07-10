@@ -10,7 +10,7 @@ class Account:
         self.sql = SQLHelper(db)
 
     # updates account details
-    def addAccountDetails(self, accountId: int, balance: int, isAuthorized: bool = True) -> None:
+    def addAccountDetails(self, accountId: str, balance: int, isAuthorized: bool = True) -> None:
         self.accountId = accountId
         self.balance = balance
         self.isAuthorized = isAuthorized

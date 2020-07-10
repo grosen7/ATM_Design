@@ -48,7 +48,7 @@ class ATM:
     # uses accountSelectCmd from sqlhelper to get account using account id
     # checks that the provided pin matches the pin on file
     # if pin matches account is authorized, otherwise account is not authorized
-    def authorize(self, accountId: int, pin: int) -> ControllerResponse:
+    def authorize(self, accountId: str, pin: str) -> ControllerResponse:
         response = ControllerResponse()
 
         # check if an account is already authorized, if one is then return
@@ -121,7 +121,7 @@ class ATM:
         # if there is money in the account but not enough
         # add an extra 5 to withdrawal amount
         # update account and atm balance
-        elif 0 < self.account.balance < amount:
+        elif 0 <= self.account.balance < amount:
             self.updateBalances(amount, True, True)
             message += ("Amount dispensed: ${}\nYou have been charged an overdraft fee of "
                         "$5. Current balance: {}").format(amount, round(self.account.balance,2))
@@ -245,12 +245,18 @@ class ATM:
         validCmds = list()
         validCmds.append(firstPart)
 
-        # loop through all provided commands 
-        # first command should be string
-        # all other parts should be ints
-        for i in range(1, len(cmdParts)):
-            argVal = int(cmdParts[i].strip())
-            validCmds.append(argVal)
+        # is this is an authorize command then list should have strings
+        if firstPart == "authorize":
+            for i in range(1, len(cmdParts)):
+                argVal = cmdParts[i].strip()
+                validCmds.append(argVal)
+
+        # otherwise first command should be strings
+        # all others should be ints if len > 1
+        elif len(cmdParts) > 1:
+            for i in range(1, len(cmdParts)):
+                argVal = int(cmdParts[i].strip())
+                validCmds.append(argVal)
         
         return validCmds
         
@@ -267,11 +273,10 @@ class ATM:
             # raise exception
             if len(userInput.strip()) == 0:
                 raise Exception("No input detected.")
-            
             # parse commands if valid, exception raised if not valid
             cmds = self.validateInput(userInput)
             initArg = cmds[0]
-
+            
             # if the command is in the list of commands that need authorization
             # validate that the account is authorized
             if initArg in self.preauthCmds:

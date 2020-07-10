@@ -15,31 +15,31 @@ class SQLHelper:
         return cursor
 
     # returns account data bas
-    def accountSelectCmd(self, accountId: int) -> List[Tuple[object]]:
-        self.cursor.execute("SELECT * FROM accounts WHERE account_id = {};".format(accountId))
+    def accountSelectCmd(self, accountId: str) -> List[Tuple[object]]:
+        self.cursor.execute("SELECT * FROM accounts WHERE account_id = '{}';".format(accountId))
         data = self.cursor.fetchone()
         return data
     
     # update account balance
     # add transaction to history table
-    def updateBalanceCmd(self, accountId: int, amount: int, updatedAmount: int) -> None:
-        self.cursor.execute("UPDATE accounts SET balance = {} WHERE account_id = {};".format(updatedAmount, accountId))
+    def updateBalanceCmd(self, accountId: str, amount: int, updatedAmount: int) -> None:
+        self.cursor.execute("UPDATE accounts SET balance = {} WHERE account_id = '{}';".format(updatedAmount, accountId))
         self.updateHistoryCmd(accountId, amount, updatedAmount)
 
     # returns transaction history for account
-    def getHistoryCmd(self, accountId: int) -> List[Tuple[object]]:
-        self.cursor.execute("""SELECT date, time, amount, new_balance FROM history WHERE account_id = {} 
+    def getHistoryCmd(self, accountId: str) -> List[Tuple[object]]:
+        self.cursor.execute("""SELECT date, time, amount, new_balance FROM history WHERE account_id = '{}' 
                                 ORDER BY date, time desc;""".format(accountId))
         data = self.cursor.fetchall()
         return data
 
     # inserts row into history table with necessary transaction data
-    def updateHistoryCmd(self, accountId: int, amount: int, updatedAmount: int) -> None:
+    def updateHistoryCmd(self, accountId: str, amount: int, updatedAmount: int) -> None:
         date = datetime.today().strftime("%Y-%m-%d")
         time = datetime.now().strftime("%H:%M:%S")
         self.cursor.execute(
             """INSERT INTO history(account_id, date, time, amount, new_balance) 
-                VALUES({},'{}','{}',{},{});""".format(accountId, date, time, round(amount,2), round(updatedAmount,2)))
+                VALUES('{}','{}','{}',{},{});""".format(accountId, date, time, amount, updatedAmount))
 
     # updates atm balance to updatedAmount
     def updateATMBalance(self, updatedAmount: int, id: int = 1) -> None:
@@ -59,7 +59,7 @@ class SQLHelper:
         return balance
 
     # inserts line to errors table
-    def logErrorCmd(self, accountId: int, error: str) -> None:
+    def logErrorCmd(self, accountId: str, error: str) -> None:
         try:
             timestamp = datetime.now()
 
@@ -70,7 +70,7 @@ class SQLHelper:
                                         VALUES('{}', '{}');""".format(timestamp, error))
             else:
                 self.cursor.execute("""INSERT INTO errors(account_id, timestamp, error) 
-                                        VALUES({}, '{}', '{}');""".format(accountId, timestamp, error))
+                                        VALUES('{}', '{}', '{}');""".format(accountId, timestamp, error))
         # as this is being called from exception block in the controller
         # we need to just aborb the error, most likely a bad sql connection
         except Exception:
@@ -84,5 +84,5 @@ class SQLHelper:
         return self.cursor.fetchone()
 
     # clear account history
-    def clearAccountHistoryCmd(self, accountId: int) -> None:
-        self.cursor.execute("DELETE FROM history WHERE account_id = {};".format(accountId))
+    def clearAccountHistoryCmd(self, accountId: str) -> None:
+        self.cursor.execute("DELETE FROM history WHERE account_id = '{}';".format(accountId))

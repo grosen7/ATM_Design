@@ -20,6 +20,12 @@ class ATM:
         self.db = db
         self.account = Account(self.db)
 
+    # updates atm balance in memory and in db
+    # to specified amount
+    def updateATMBalance(self, amount: int):
+        self.sql.updateATMBalance(amount)
+        self.atmBalance = amount
+
     # updates atm and account balances
     def updateBalances(self, amount: int, withdrawal: bool, overdraft: bool = False) -> None:
         actAmt = amount
@@ -36,7 +42,7 @@ class ATM:
         
         # run methods to update atm and account balances
         newAtmBal = self.atmBalance + atmAmt
-        self.sql.updateATMBalance(newAtmBal)
+        self.updateATMBalance(newAtmBal)
         self.account.updateAccountBalance(actAmt)
 
     # uses accountSelectCmd from sqlhelper to get account using account id
@@ -80,12 +86,17 @@ class ATM:
     # validate that atm and account have enough money
     def withdraw(self, amount: int) -> ControllerResponse:
         response = ControllerResponse()
-        message = ""
 
+        # if the amount is not greater than 0 and not an increment of 20 update response message
+        # exit immediately
+        if amount <= 0 or amount % 20 != 0:
+            message = "Withdrawal amount must be greater than 0 and in increments of 20."
+            response.addResponseMsg(message)
+            return response
         # if the account is overdrawn update the response message
         # and exit immediately
-        if self.account.balance <= 0:
-            message += "Your account is overdrawn! You may not make withdrawals at this time."
+        elif self.account.balance < 0:
+            message = "Your account is overdrawn! You may not make withdrawals at this time."
             response.addResponseMsg(message)
             return response
         # if the atm has no money update response message and return
@@ -93,11 +104,8 @@ class ATM:
             message = "Unable to process your withdrawal at this time."
             response.addResponseMsg(message)
             return response
-        # if the amount is not greater than 0 and not an increment of 20 update response message
-        elif amount <= 0 or amount % 20 != 0:
-            message = "Withdrawal amount must be greater than 0 and in increments of 20."
-            response.addResponseMsg(message)
-            return response
+        
+        message = ""
 
         # if there isn't enough in the atm, update amount requested to atm balance
         # prepend unable to dispense full amount message to return message
@@ -109,14 +117,14 @@ class ATM:
         # update account and atm balance
         if amount <= self.account.balance:
             self.updateBalances(amount, True)
-            message += "Amount dispensed: ${}\nCurrent balance: {}".format(amount, self.account.balance)
+            message += "Amount dispensed: ${}\nCurrent balance: {}".format(amount, round(self.account.balance,2))
         # if there is money in the account but not enough
         # add an extra 5 to withdrawal amount
         # update account and atm balance
         elif 0 < self.account.balance < amount:
             self.updateBalances(amount, True, True)
             message += ("Amount dispensed: ${}\nYou have been charged an overdraft fee of "
-                        "$5. Current balance: {}").format(amount, self.account.balance)
+                        "$5. Current balance: {}").format(amount, round(self.account.balance,2))
 
         # update response message
         response.addResponseMsg(message)
@@ -127,7 +135,7 @@ class ATM:
     def deposit(self, amount: int) -> ControllerResponse:
         if amount > 0:
             self.updateBalances(amount, False)
-            message = "Current balance: {}".format(self.account.balance)
+            message = "Current balance: {}".format(round(self.account.balance,2))
         else:
             message = "Deposit amount must be greater than 0."
         
@@ -139,7 +147,7 @@ class ATM:
     # Finds balance of authorized account
     def getBalance(self) -> ControllerResponse:
         response = ControllerResponse()
-        response.addResponseMsg("Current balance: {}".format(self.account.balance))
+        response.addResponseMsg("Current balance: {}".format(round(self.account.balance,2)))
         return response
 
     # get history from db then format into string
@@ -147,8 +155,13 @@ class ATM:
         message = ""
         sqlData = self.sql.getHistoryCmd(self.account.accountId)
 
-        for row in sqlData:
-            message += "{} {} {} {}\n".format(row[0], row[1], row[2], row[3])
+        # if no history found update message
+        # otherwise grab history
+        if len(sqlData) == 0:
+            message = "No history found"
+        else:
+            for row in sqlData:
+                message += "{} {} {} {}\n".format(row[0], row[1], round(row[2],2), round(row[3],2))
         
         response = ControllerResponse()
         response.addResponseMsg(message)
@@ -173,6 +186,7 @@ class ATM:
     def inactiveLogout(self) -> None:
         self.account = Account(self.db)
         self.activeTimer = False
+        self.timer = Timer(self.inactiveTime, self.inactiveLogout)
 
     # starts the inactive timer if one isn't running and account is authorized
     def startInactiveTimer(self) -> None:
@@ -193,6 +207,7 @@ class ATM:
     def endProgram(self) -> ControllerResponse:
         response = ControllerResponse()
         response.setEndFlag()
+        response.addResponseMsg("Goodbye!")
         return response
 
     # logs error to db
@@ -211,19 +226,31 @@ class ATM:
         # no command should have over 3 arguments, raise exception
         if len(cmdParts) > 3:
             raise Exception("Too many arguments detected in command: {}".format(usrInput))
-        
+
+        firstPart = cmdParts[0].lower()
+        # commands that should only have 2 parts
+        twoPartCmds = ["withdraw", "deposit"]
+        onePartCmds = ["balance", "history", "logout", "end"]
+
+        # if the command has three parts it should be authorize
+        if len(cmdParts) == 3 and firstPart != "authorize":
+            raise Exception("Too many arguments detected in command: {}".format(usrInput))
+        # if it has two pasts it should just be withdraw or deposit
+        elif len(cmdParts) == 2 and firstPart not in twoPartCmds:
+             raise Exception("Too many arguments detected in command: {}".format(usrInput))
+        # if in one part commands, should only be one command
+        elif firstPart in onePartCmds and len(cmdParts) != 1:
+             raise Exception("Too many arguments detected in command: {}".format(usrInput))
+
         validCmds = list()
+        validCmds.append(firstPart)
 
         # loop through all provided commands 
         # first command should be string
         # all other parts should be ints
-        for i in range(len(cmdParts)):
-            if i == 0:
-                initArg = cmdParts[i].strip().lower()
-                validCmds.append(initArg)
-            else:
-                argVal = int(cmdParts[i].strip())
-                validCmds.append(argVal)
+        for i in range(1, len(cmdParts)):
+            argVal = int(cmdParts[i].strip())
+            validCmds.append(argVal)
         
         return validCmds
         
@@ -269,11 +296,11 @@ class ATM:
                 response = self.logout()
             elif initArg == "end":
                 response = self.endProgram()
-            # if the command isn't recognized then raise exception
+            # otherwise command isn't recognized, throw error
             else:
                 raise Exception("Invalid command detected: {}".format(userInput))
 
-        # log error and update controller repsonse message
+        # if there is an error, log to db and update controller message
         except Exception as e:
             self.logError(e)
             message = "Invalid command detected."
@@ -286,16 +313,3 @@ class ATM:
             self.startInactiveTimer()
 
         return response
-    
-if __name__ == "__main__":
-    obj = ATM(5, "Data/atmdb_test.db")
-    # over drawn
-    print(obj.controller("authorize 2859459814 7386").message)
-    # print(obj.controller("authorize me please ok is that fine ?!@^#%*").message)
-    # has tons o' money
-    # print(obj.controller("authorize 1434597300 4557").message)
-    print(obj.controller("withdraw 20").message)
-    # sleep = Event()
-    # sleep.wait(6.0)
-    # print(obj.controller("logout").message)
-    obj.controller("end")

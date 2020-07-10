@@ -76,3 +76,13 @@ class SQLHelper:
         except Exception:
             pass
     
+    # below methods are just used for testing...
+
+    # get first account
+    def getSingleAccountCmd(self) -> Tuple[object]:
+        self.cursor.execute("SELECT account_id, pin FROM accounts LIMIT 1;")
+        return self.cursor.fetchone()
+
+    # clear account history
+    def clearAccountHistoryCmd(self, accountId: int) -> None:
+        self.cursor.execute("DELETE FROM history WHERE account_id = {};".format(accountId))

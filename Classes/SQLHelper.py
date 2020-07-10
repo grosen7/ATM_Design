@@ -39,7 +39,7 @@ class SQLHelper:
         time = datetime.now().strftime("%H:%M:%S")
         self.cursor.execute(
             """INSERT INTO history(account_id, date, time, amount, new_balance) 
-                VALUES({},'{}','{}',{},{});""".format(accountId, date, time, amount, updatedAmount))
+                VALUES({},'{}','{}',{},{});""".format(accountId, date, time, round(amount,2), round(updatedAmount,2)))
 
     # updates atm balance to updatedAmount
     def updateATMBalance(self, updatedAmount: int, id: int = 1) -> None:

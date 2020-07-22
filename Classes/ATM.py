@@ -57,6 +57,12 @@ class ATM:
             response.addResponseMsg(message)
             return response
 
+        # validate that account sql object is valid
+        # it's possible that it could have been cleared
+        # due to inactivity
+        if self.account.sql is None:
+            self.account.sql = SQLHelper(self.db)
+
         # search for account data
         actData = self.sql.accountSelectCmd(accountId)
 
@@ -184,7 +190,7 @@ class ATM:
     # method that is called by timer when time is up
     # logs out user and sets active timer flag to false
     def inactiveLogout(self) -> None:
-        self.account = Account(self.db)
+        self.account.clearAccountDetails()
         self.activeTimer = False
         self.timer = Timer(self.inactiveTime, self.inactiveLogout)
 

@@ -349,5 +349,35 @@ class ATMTests(unittest.TestCase):
         
         atm.controller("end")
 
+    # test having a user login, be logged out due to inactivity
+    # login again and then withdraw
+    def test_InactiveLogoutThenLoginAndWitdraw(self) -> None:
+        print("Testing a scenario when a user is logged out due to inactivity then is logged back and withdraws")
+        atm = self.AuthorizeAct()
+        sleep = Event()
+        sleep.wait(4)
+        atm = self.AuthorizeAct()
+        ogBal = atm.account.balance
+
+        # make sure the account has enough money
+        if ogBal < 20:
+            diff = 20 - ogBal
+            atm.account.updateAccountBalance(diff)
+
+        # make sure atm has enough money
+        if atm.atmBalance < 20:
+            atm.updateATMBalance(100)
+
+        # withdraw money and recheck balance
+        response = atm.controller("withdraw 20")
+        newBal = atm.account.balance
+        self.assertEqual(newBal, ogBal - 20)
+        message = "Amount dispensed: $20\nCurrent balance: {}".format(newBal)
+        self.assertEqual(response.message, message)
+        atm.controller("end")
+
+
+
+
 if __name__ == "__main__":
     unittest.main()

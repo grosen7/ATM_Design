@@ -23,3 +23,13 @@ class Account:
         newBalance = self.balance + amount
         self.sql.updateBalanceCmd(self.accountId, amount, newBalance)
         self.balance = newBalance
+
+    # Clears all account details
+    # This method is mainly to be used for inactive logout
+    # As we can't create a new sqllite object in a different thread
+    def clearAccountDetails(self) -> None:
+        self.accountId = None
+        self.balance = None
+        self.isAuthorized = False
+        self.sql = None
+

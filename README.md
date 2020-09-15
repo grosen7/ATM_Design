@@ -1,6 +1,6 @@
 # ATM_Design
 
-# This program was designed following the ATM Design Problem.pdf document. Please view this document for a breakdown of the available commands.
+## This program was designed following the ATM Design Problem.pdf document. Please view this document for a breakdown of the available commands.
 
 ## To run the main program do the following:
 1) Make the ATM_Design directory the current directory
